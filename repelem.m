@@ -78,25 +78,29 @@ function ret = repelem(element, varargin)
     
 
     idx = {};
-    for n = 1:max([ndims(element) numel(varargin)])
-      if n <= numel(varargin) && n <= ndims(element)
+    for n = 1:max([elsize numel(varargin)])
+      if ((n <= elsize) && (n <= numel(varargin))) # n is within varargin and elsize
         idx{n} = prepareIdx(varargin{n}, element, n)(:)';
+      elseif (elsize > numel(varargin))  
+        idx{n} = 1:size(element,n); #will give [1,2,3,...,size(el,n)], for dims not covered by varargin, essentially leaving them alone
       else
-        idx{n} = colon(1, size(element, n));
+        idx{n} = ones(1,varargin{n}); # will give [1 1 1 1 1 ... 1] for replicating in the nth dimension for varagins addressing trailing singletons in element
+          
       endif
-    endfor  
-      
+    endfor
       
     ret = element(idx{:});
-    if numel(varargin) ~= numel(size(element))
-      [newD, isD] = deal(ones(2, max([numel(varargin) numel(size(element))])));
-      newD(1,1:length(cell2mat(varargin))) = cell2mat(varargin);
-      newD(2,1:length(size(element))) = size(element);
-      newD  = prod(newD);
-      isD(1,:) = newD;
-      isD(2,1:length(size(ret))) = size(ret);
-      ret = repmat(ret, abs(diff(isD)) + 1);
-    endif
+
+    ##not sure if the rest is needed with the new elseif in the for loop...
+ #   if numel(varargin) ~= numel(size(element)) #if either varargin or element is too long or short...
+ #     [newD, isD] = deal(ones(2, max([numel(varargin) numel(size(element))]))); #create two matrices of ones, 2 x (bigger size)
+ #     newD(1,1:length(cell2mat(varargin))) = cell2mat(varargin);
+ #     newD(2,1:length(size(element))) = size(element);
+ #     newD  = prod(newD);
+ #     isD(1,:) = newD;
+ #     isD(2,1:length(size(ret))) = size(ret);
+ #     ret = repmat(ret, abs(diff(isD)) + 1);
+ #   endif
 
     #ret = arrayfun(@(element, varargin) repmat(element, varargin{:}), element, varargin{:}, 'UniformOutput', false);
     #ret = cell2mat(ret);
@@ -133,8 +137,10 @@ endfunction
 %!assert (repelem([1 0;0 -1], 2, 3, 4), cat(3,[1 1 1 0 0 0;1 1 1 0 0 0;0 0 0 -1 -1 -1;0 0 0 -1 -1 -1],[1 1 1 0 0 0;1 1 1 0 0 0;0 0 0 -1 -1 -1;0 0 0 -1 -1 -1],[1 1 1 0 0 0;1 1 1 0 0 0;0 0 0 -1 -1 -1;0 0 0 -1 -1 -1],[1 1 1 0 0 0;1 1 1 0 0 0;0 0 0 -1 -1 -1;0 0 0 -1 -1 -1]))
 %!assert (repelem([1 0; 0 -1], 1,[3 2]), [1 1 1 0 0;0 0 0 -1 -1])
 %!assert (repelem([1 0; 0 -1], 2,[3 2]), [1 1 1 0 0;1 1 1 0 0;0 0 0 -1 -1;0 0 0 -1 -1])
+%!assert (repelem(cat(3,[1 0; 0 -1],[1 0;0 -1]), 1,[3 2]),repmat([1 1 1 0 0 ; 0 0 0 -1 -1],1,1,2))
 %!assert (repelem([1 0; 0 -1], [3 2], 1), [1 0;1 0;1 0;0 -1;0 -1])
 %!assert (repelem([1 0; 0 -1], [3 2], 2), [1 1 0 0;1 1 0 0;1 1 0 0;0 0 -1 -1;0 0 -1 -1])
 %!assert (repelem([1 0; 0 -1], [2 3] ,[3 2]), [1 1 1 0 0;1 1 1 0 0;0 0 0 -1 -1;0 0 0 -1 -1;0 0 0 -1 -1])
 %!assert (repelem(cat(3,[1 1 1 0;0 1 0 0],[1 1 1 1;0 0 0 1],[1 0 0 1;1 1 0 1]), 2, 3), cat(3,[1 1 1 1 1 1 1 1 1 0 0 0;1 1 1 1 1 1 1 1 1 0 0 0;0 0 0 1 1 1 0 0 0 0 0 0;0 0 0 1 1 1 0 0 0 0 0 0],[1 1 1 1 1 1 1 1 1 1 1 1;1 1 1 1 1 1 1 1 1 1 1 1;0 0 0 0 0 0 0 0 0 1 1 1;0 0 0 0 0 0 0 0 0 1 1 1],[1 1 1 0 0 0 0 0 0 1 1 1;1 1 1 0 0 0 0 0 0 1 1 1;1 1 1 1 1 1 0 0 0 1 1 1;1 1 1 1 1 1 0 0 0 1 1 1]))
-%!assert (repelem([1,0,-1;-1,0,1],[2 3],[2 3 4],2),repmat([1 1 0 0 0 -1 -1 -1 -1;1 1 0 0 0 -1 -1 -1 -1;-1 -1 0 0 0 1 1 1 1;-1 -1 0 0 0 1 1 1 1;-1 -1 0 0 0 1 1 1 1],1,1,2))
+%!assert (repelem(cat(3,[1 1 1 0;0 1 0 0],[1 1 1 1;0 0 0 1],[1 0 0 1;1 1 0 1]), 2, [3 3 3 3]),cat(3,[1 1 1 1 1 1 1 1 1 0 0 0;1 1 1 1 1 1 1 1 1 0 0 0;0 0 0 1 1 1 0 0 0 0 0 0;0 0 0 1 1 1 0 0 0 0 0 0],[1 1 1 1 1 1 1 1 1 1 1 1;1 1 1 1 1 1 1 1 1 1 1 1;0 0 0 0 0 0 0 0 0 1 1 1;0 0 0 0 0 0 0 0 0 1 1 1],[1 1 1 0 0 0 0 0 0 1 1 1;1 1 1 0 0 0 0 0 0 1 1 1;1 1 1 1 1 1 0 0 0 1 1 1;1 1 1 1 1 1 0 0 0 1 1 1]))
+%!assert (repelem([1,0,-1;-1,0,1],[2 3],[2 3 4],2),cat(3,[1 1 0 0 0 -1 -1 -1 -1;1 1 0 0 0 -1 -1 -1 -1;-1 -1 0 0 0 1 1 1 1;-1 -1 0 0 0 1 1 1 1;-1 -1 0 0 0 1 1 1 1],[1 1 0 0 0 -1 -1 -1 -1;1 1 0 0 0 -1 -1 -1 -1;-1 -1 0 0 0 1 1 1 1;-1 -1 0 0 0 1 1 1 1;-1 -1 0 0 0 1 1 1 1]))
