@@ -47,11 +47,7 @@ function ret = repelem(element, varargin)
     elseif isvector(element) && (length(v) == length(element))
     # this assumes a vector. but a 2x2 array and v = [2 2] would pass, but should error out.
     
-      # works for row or column vector. output direction will match element
-      idx1 = cumsum(v); # gets ending position for each element item
-      idx2(1:idx1(end)) = 0; # row vector with enough space for output
-      idx2(idx1(1:end - 1) + 1) = 1; # sets starting position of each element to 1
-      idx2(1) = 1; # sets starting position of each element to 1
+      idx2 = prepareIdx(v);
       ret = element(cumsum(idx2)); # cumsum fills array with element indices is right position. element(cumsum) fills with element values, direction matches element.
   
       
@@ -80,8 +76,29 @@ function ret = repelem(element, varargin)
       
     endif 
          
-    ret = arrayfun(@(element, varargin) repmat(element, varargin{:}), element, varargin{:}, 'UniformOutput', false);
-    ret = cell2mat(ret);
+    if (nargin == 3) && ...
+        (length(varargin{1}) == rows(element) || length(varargin{2}) == columns(element)) && ...
+        (ndims(element) == 2)
+      
+      # prepare repeated rows and cols elements        
+      if (isscalar(varargin{1}))
+        rowIdx = repmat(1:rows(element), varargin{1},1)(:);
+      else
+        rowIdx = cumsum(prepareIdx(varargin{1}));       
+      endif
+      
+      if (isscalar(varargin{2}))
+        colIdx = repmat(1:columns(element), varargin{2},1)(:);
+      else
+        colIdx = cumsum(prepareIdx(varargin{2}));      
+      endif
+      
+      ret = element(rowIdx, colIdx);
+
+    else
+      ret = arrayfun(@(element, varargin) repmat(element, varargin{:}), element, varargin{:}, 'UniformOutput', false);
+      ret = cell2mat(ret);
+    endif
     
     ## TODO
     ## repeat column/rows n times
@@ -91,9 +108,24 @@ function ret = repelem(element, varargin)
 
 endfunction
 
+function idx2 = prepareIdx(v)
+
+      # works for row or column vector. output direction will match element
+      idx1 = cumsum(v); # gets ending position for each element item
+      idx2(1:idx1(end)) = 0; # row vector with enough space for output
+      idx2(idx1(1:end - 1) + 1) = 1; # sets starting position of each element to 1
+      idx2(1) = 1; # sets starting position of each element to 1
+  
+endfunction
+
 %!assert (repelem([-1 0 1], 2), [-1 -1 0 0 1 1])
 %!assert (repelem([-1 0 1]', 2), [-1; -1; 0; 0; 1; 1;])
 %!assert (repelem([-1 0 1], [1 2 1]), [-1 0 0 1]) 
 %!assert (repelem([-1 0 1]', [1 2 1]), [-1; 0; 0; 1])
 %!assert (repelem([1 0;0 -1], 2, 3),  [1 1 1 0 0 0;1 1 1 0 0 0;0 0 0 -1 -1 -1;0 0 0 -1 -1 -1])
 %!assert (repelem([1 0;0 -1], 2, 3, 4), cat(3,[1 1 1 0 0 0;1 1 1 0 0 0;0 0 0 -1 -1 -1;0 0 0 -1 -1 -1],[1 1 1 0 0 0;1 1 1 0 0 0;0 0 0 -1 -1 -1;0 0 0 -1 -1 -1],[1 1 1 0 0 0;1 1 1 0 0 0;0 0 0 -1 -1 -1;0 0 0 -1 -1 -1],[1 1 1 0 0 0;1 1 1 0 0 0;0 0 0 -1 -1 -1;0 0 0 -1 -1 -1]))
+%!assert (repelem([1 0; 0 -1], 1,[3 2]), [1 1 1 0 0;0 0 0 -1 -1])
+%!assert (repelem([1 0; 0 -1], 2,[3 2]), [1 1 1 0 0;1 1 1 0 0;0 0 0 -1 -1;0 0 0 -1 -1])
+%!assert (repelem([1 0; 0 -1], [3 2], 1), [1 0;1 0;1 0;0 -1;0 -1])
+%!assert (repelem([1 0; 0 -1], [3 2], 2), [1 1 0 0;1 1 0 0;1 1 0 0;0 0 -1 -1;0 0 -1 -1])
+%!assert (repelem([1 0; 0 -1], [2 3] ,[3 2]), [1 1 1 0 0;1 1 1 0 0;0 0 0 -1 -1;0 0 0 -1 -1;0 0 0 -1 -1])
