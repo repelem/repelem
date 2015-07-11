@@ -60,6 +60,7 @@ function ret = repelem(element, varargin)
   
     ## INPUT CHECK
     elsize = ndims(element);
+    vasize = numel(varargin);
     nonscalarv = ~cellfun(@isscalar, varargin);
     
     # 1st that they are all scalars or vectors. isvector gives true for scalars.
@@ -77,16 +78,16 @@ function ret = repelem(element, varargin)
     endif 
     
 
-    idx = {};
+    idx = cell(1,1:max([elsize vasize]));
     # iterate over the largest dimension
-    for n = 1:max([elsize numel(varargin)])
+    for n = 1:max([elsize vasize])
       # use prepareIdx() until both dimensions has the same this in iterate 'n'
-      if ((n <= elsize) && (n <= numel(varargin))) # n is within varargin and elsize
-        idx{n} = prepareIdx(varargin{n}, element, n)(:)';
-      elseif (elsize > numel(varargin))  
-        idx{n} = 1:size(element,n); #will give [1,2,3,...,size(el,n)], for dims not covered by varargin, essentially leaving them alone
+      if ((n <= elsize) && (n <= vasize)) # n is within varargin and elsize
+        idx{1,n} = prepareIdx(varargin{n}, element, n)(:)';
+      elseif (elsize > vasize)  
+        idx{1,n} = 1:size(element,n); #will give [1,2,3,...,size(el,n)], for dims not covered by varargin, essentially leaving them alone
       else
-        idx{n} = ones(1,varargin{n}); # will give [1 1 1 1 1 ... 1] for replicating in the nth dimension for varagins addressing trailing singletons in element
+        idx{1,n} = ones(1,varargin{n}); # will give [1 1 1 1 1 ... 1] for replicating in the nth dimension for varagins addressing trailing singletons in element
           
       endif
     endfor
