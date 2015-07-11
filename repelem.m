@@ -48,7 +48,7 @@ function ret = repelem(element, varargin)
     # this assumes a vector. but a 2x2 array and v = [2 2] would pass, but should error out.
     
       idx2 = prepareIdx(v);
-      ret = element(cumsum(idx2)); # cumsum fills array with element indices is right position. element(cumsum) fills with element values, direction matches element.
+      ret  = element(idx2); # cumsum fills array with element indices is right position. element(cumsum) fills with element values, direction matches element.
   
       
     else
@@ -62,59 +62,62 @@ function ret = repelem(element, varargin)
     elsize = ndims(element);
     nonscalarv = ~cellfun(@isscalar, varargin);
     
-    # first check for valid number of inputs (compatibility: ML allows for unlimited trailing singletons)
-    if ((nargin - 1) < elsize) %will allow for trailing singletons
-      error("%gD Array objects requires %g input arguments, only %g given", ndims(element), ndims(element) + 1, nargin);
-
-    # 2nd that they are all scalars or vectors. isvector gives true for scalars.
-    elseif (~all(cellfun(@isvector, varargin))) 
+    # 1st that they are all scalars or vectors. isvector gives true for scalars.
+    if (~all(cellfun(@isvector, varargin))) 
       error("varargin must be all be scalars or vectors");
     
-    # third, that the ones that are vectors have the right length. this should catch any vectors thrown at trailing singletons, which should only have scalars.
+    # 2nd, that the ones that are vectors have the right length. this should catch any vectors thrown at trailing singletons, which should only have scalars.
     elseif (~all(cellfun(@length, varargin(nonscalarv)) == size(element)(nonscalarv)))
       error("varargin(n) must either be scalar or have the same number of elements as the size of dimension n of the array to be replicated");        
       
     endif 
-         
-    if (nargin == 3) && ...
-        (length(varargin{1}) == rows(element) || length(varargin{2}) == columns(element)) && ...
-        (ndims(element) == 2)
-      
-      # prepare repeated rows and cols elements        
-      if (isscalar(varargin{1}))
-        rowIdx = repmat(1:rows(element), varargin{1},1)(:);
-      else
-        rowIdx = cumsum(prepareIdx(varargin{1}));       
-      endif
-      
-      if (isscalar(varargin{2}))
-        colIdx = repmat(1:columns(element), varargin{2},1)(:);
-      else
-        colIdx = cumsum(prepareIdx(varargin{2}));      
-      endif
-      
-      ret = element(rowIdx, colIdx);
-
-    else
-      ret = arrayfun(@(element, varargin) repmat(element, varargin{:}), element, varargin{:}, 'UniformOutput', false);
-      ret = cell2mat(ret);
-    endif
     
-    ## TODO
-    ## repeat column/rows n times
-        
+
+    idx = {};
+    for n = 1:max([ndims(element) numel(varargin)])
+      if n <= numel(varargin) && n <= ndims(element)
+        idx{n} = prepareIdx(varargin{n}, element, n)(:)';
+      else
+        idx{n} = colon(1, size(element, n));
+      endif
+    endfor  
+      
+      
+    ret = element(idx{:});
+    if numel(varargin) ~= numel(size(element))
+      [newD, isD] = deal(ones(2, max([numel(varargin) numel(size(element))])));
+      newD(1,1:length(cell2mat(varargin))) = cell2mat(varargin);
+      newD(2,1:length(size(element))) = size(element);
+      newD  = prod(newD);
+      isD(1,:) = newD;
+      isD(2,1:length(size(ret))) = size(ret);
+      ret = repmat(ret, abs(diff(isD)) + 1);
+    endif
+
+    #ret = arrayfun(@(element, varargin) repmat(element, varargin{:}), element, varargin{:}, 'UniformOutput', false);
+    #ret = cell2mat(ret);
   
   endif
 
 endfunction
 
-function idx2 = prepareIdx(v)
 
-      # works for row or column vector. output direction will match element
-      idx1 = cumsum(v); # gets ending position for each element item
-      idx2(1:idx1(end)) = 0; # row vector with enough space for output
-      idx2(idx1(1:end - 1) + 1) = 1; # sets starting position of each element to 1
-      idx2(1) = 1; # sets starting position of each element to 1
+function idx2 = prepareIdx(v, element, n)
+
+  if (isscalar(v))
+  
+    idx2 = repmat(1:size(element, n), v, 1)(:);
+  
+  else
+  
+    # works for row or column vector. output direction will match element
+    idx1 = cumsum(v); # gets ending position for each element item
+    idx2(1:idx1(end)) = 0; # row vector with enough space for output
+    idx2(idx1(1:end - 1) + 1) = 1; # sets starting position of each element to 1
+    idx2(1) = 1; # sets starting position of each element to 1
+    idx2 = cumsum(idx2);
+    
+  endif
   
 endfunction
 
@@ -129,3 +132,4 @@ endfunction
 %!assert (repelem([1 0; 0 -1], [3 2], 1), [1 0;1 0;1 0;0 -1;0 -1])
 %!assert (repelem([1 0; 0 -1], [3 2], 2), [1 1 0 0;1 1 0 0;1 1 0 0;0 0 -1 -1;0 0 -1 -1])
 %!assert (repelem([1 0; 0 -1], [2 3] ,[3 2]), [1 1 1 0 0;1 1 1 0 0;0 0 0 -1 -1;0 0 0 -1 -1;0 0 0 -1 -1])
+%!assert (repelem(cat(3,[1 1 1 0;0 1 0 0],[1 1 1 1;0 0 0 1],[1 0 0 1;1 1 0 1]), 2, 3), cat(3,[1 1 1 1 1 1 1 1 1 0 0 0;1 1 1 1 1 1 1 1 1 0 0 0;0 0 0 1 1 1 0 0 0 0 0 0;0 0 0 1 1 1 0 0 0 0 0 0],[1 1 1 1 1 1 1 1 1 1 1 1;1 1 1 1 1 1 1 1 1 1 1 1;0 0 0 0 0 0 0 0 0 1 1 1;0 0 0 0 0 0 0 0 0 1 1 1],[1 1 1 0 0 0 0 0 0 1 1 1;1 1 1 0 0 0 0 0 0 1 1 1;1 1 1 1 1 1 0 0 0 1 1 1;1 1 1 1 1 1 0 0 0 1 1 1]))
