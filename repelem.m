@@ -1,5 +1,7 @@
 ## Copyright (C) 2015 Markus Bergholz <markuman@gmail.com>
-## Copyright (C) 2015 Nick Jankowski <jankowskin@asme.org>
+## Co-author  Nicholas R. Jankowski <jankowskin@asme.org> **
+##   ** U.S. government employee, contributions are public domain
+##      with no personal assertion of copyright
 ##
 ## This file is part of Octave.
 ##
