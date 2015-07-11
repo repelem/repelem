@@ -66,7 +66,11 @@ function ret = repelem(element, varargin)
     if (~all(cellfun(@isvector, varargin))) 
       error("varargin must be all be scalars or vectors");
     
-    # 2nd, that the ones that are vectors have the right length. this should catch any vectors thrown at trailing singletons, which should only have scalars.
+    # 2nd, catch any vectors thrown at trailing singletons, which should only have scalars.
+    elseif (max(find(nonscalarv)) > elsize)
+      error("varargin(n) for trailing singleton dimensions must be scalar");        
+    
+    # 3rd, that the ones that are vectors have the right length.
     elseif (~all(cellfun(@length, varargin(nonscalarv)) == size(element)(nonscalarv)))
       error("varargin(n) must either be scalar or have the same number of elements as the size of dimension n of the array to be replicated");        
       
