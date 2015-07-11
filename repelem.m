@@ -78,7 +78,9 @@ function ret = repelem(element, varargin)
     
 
     idx = {};
+    # iterate over the largest dimension
     for n = 1:max([elsize numel(varargin)])
+      # use prepareIdx() until both dimensions has the same this in iterate 'n'
       if ((n <= elsize) && (n <= numel(varargin))) # n is within varargin and elsize
         idx{n} = prepareIdx(varargin{n}, element, n)(:)';
       elseif (elsize > numel(varargin))  
@@ -90,20 +92,6 @@ function ret = repelem(element, varargin)
     endfor
       
     ret = element(idx{:});
-
-    ##not sure if the rest is needed with the new elseif in the for loop...
- #   if numel(varargin) ~= numel(size(element)) #if either varargin or element is too long or short...
- #     [newD, isD] = deal(ones(2, max([numel(varargin) numel(size(element))]))); #create two matrices of ones, 2 x (bigger size)
- #     newD(1,1:length(cell2mat(varargin))) = cell2mat(varargin);
- #     newD(2,1:length(size(element))) = size(element);
- #     newD  = prod(newD);
- #     isD(1,:) = newD;
- #     isD(2,1:length(size(ret))) = size(ret);
- #     ret = repmat(ret, abs(diff(isD)) + 1);
- #   endif
-
-    #ret = arrayfun(@(element, varargin) repmat(element, varargin{:}), element, varargin{:}, 'UniformOutput', false);
-    #ret = cell2mat(ret);
   
   endif
 
