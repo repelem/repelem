@@ -65,6 +65,8 @@ function ret = repelem(element, varargin)
     eldims = ndims(element);
     elsize = size(element);
     vasize = numel(varargin);
+    dims_with_both=min(eldims,vasize);
+
     nonscalarv = ~cellfun(@isscalar, varargin);
     
     # 1st check: that they are all scalars or vectors. isvector gives true for scalars.
@@ -82,13 +84,13 @@ function ret = repelem(element, varargin)
     endif 
     
     #preallocate idx which will contain index array to be put into element
-    idx = cell(1,1:max([eldims vasize]));
+    idx = cell(1,max([eldims vasize]));
 
     # iterate over each dimension of element, or the number specified by varargin, whichever is larger
     for n = 1:max([eldims vasize])
 
     # for each n, use prepareIdx() to create a cell of indices for each dimension.
-      if ((n <= eldims) && (n <= vasize)) # n is within varargin and eldims
+      if (n <= dims_with_both)# n is within varargin and eldims
 
         idx{1,n} = prepareIdx(varargin{n}, elsize(n)); %prepareIdx always returns row vect
 
