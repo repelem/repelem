@@ -66,6 +66,7 @@ function ret = repelem(element, varargin)
     elsize = size(element);
     vasize = numel(varargin);
     maxDim = max([eldims vasize]);
+    minDim = min([eldims vasize]);
     dims_with_both=min(eldims,vasize);
 
     nonscalarv = ~cellfun(@isscalar, varargin);
@@ -84,27 +85,22 @@ function ret = repelem(element, varargin)
       
     endif 
     
-    #preallocate idx which will contain index array to be put into element
+    #firts, preallocate idx which will contain index array to be put into element
     idx = cell(1, maxDim);
 
-    # iterate over each dimension of element, or the number specified by varargin, whichever is larger
-    for n = 1:maxDim
+    # use prepareIdx() to fill indices for each dimension that could be a scalar or vector
+    idx(1:minDim) = cellfun(@prepareIdx, varargin(1:minDim), num2cell(elsize(1:minDim)), 'UniformOutput', false);
 
-    # for each n, use prepareIdx() to create a cell of indices for each dimension.
-      if (n <= dims_with_both)# n is within varargin and eldims
-
-        idx{1,n} = prepareIdx(varargin{n}, elsize(n)); # prepareIdx always returns row vect
-
-      #if eldims ~= vasize, fill remaining cells according to which is bigger
-      elseif (eldims > vasize)  
-        idx{1,n} = 1:size(element, n); #will give [1,2,3,...,size(el,n)], for dims not covered by varargin, essentially leaving them alone
-        
-      else
-        idx{1,n} = ones(1, varargin{n}); # will give [1 1 1 1 1 ... 1] for simple replication in the nth dimension for varagins addressing trailing singletons
-          
-      endif
-    endfor
-      
+    # then, if there are fewer varargin inputs than element dimensions, pad remaining dimensions with [1:size(el,n)], essentially leaving that dim alone
+    if (eldims > vasize)  
+      idx(vasize+1:eldims) = cellfun(@colon, {1}, num2cell(elsize(vasize+1:end)), 'UniformOutput', false);
+    
+    # if instead there are more varargin inputs than element dimensions, add [1 1 1 1 1... 1] to those dims to effect concatenation in those dims.
+    elseif (vasize > eldims)
+      idx(eldims+1:vasize) = cellfun(@ones, {1}, {varargin(eldims+1:end){:}}, 'UniformOutput', false);
+    
+    endif
+    
     ret = element(idx{:}); #use completed idx to specify repitition of element values in all dimensions
   
   endif
