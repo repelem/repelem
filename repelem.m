@@ -47,10 +47,9 @@ function ret = repelem(element, varargin)
       endif
       
     elseif isvector(element) && (length(v) == length(element))
-    # this assumes a vector. but a 2x2 array and v = [2 2] would pass, but should error out.
-    
-      idx2 = prepareIdx(v);
-      ret  = element(idx2); # cumsum fills array with element indices is right position. element(cumsum) fills with element values, direction matches element.
+      #vector element with vector varargin. basic run-length decoding in function prepareIdx
+      idx2 = prepareIdx(v); #returned idx2 has an array of element indices in right position. 
+      ret  = element(idx2); #fills with element values, direction matches element.
   
       
     else
@@ -61,40 +60,45 @@ function ret = repelem(element, varargin)
   elseif (nargin > 2)
   
     ## INPUT CHECK
+    
+    #avoid repeated function calls
     elsize = ndims(element);
     vasize = numel(varargin);
     nonscalarv = ~cellfun(@isscalar, varargin);
     
-    # 1st that they are all scalars or vectors. isvector gives true for scalars.
+    # 1st check: that they are all scalars or vectors. isvector gives true for scalars.
     if (~all(cellfun(@isvector, varargin))) 
       error("varargin must be all be scalars or vectors");
     
-    # 2nd, catch any vectors thrown at trailing singletons, which should only have scalars.
+    # 2nd check: catch any vectors thrown at trailing singletons, which should only have scalars.
     elseif (max(find(nonscalarv)) > elsize)
       error("varargin(n) for trailing singleton dimensions must be scalar");        
     
-    # 3rd, that the ones that are vectors have the right length.
+    # 3rd check: that the ones that are vectors have the right length.
     elseif (~all(cellfun(@length, varargin(nonscalarv)) == size(element)(nonscalarv)))
       error("varargin(n) must either be scalar or have the same number of elements as the size of dimension n of the array to be replicated");        
       
     endif 
     
-
+    #preallocate idx which will contain index array to be put into element
     idx = cell(1,1:max([elsize vasize]));
-    # iterate over the largest dimension
+
+    # iterate over each dimension of element, or the number specified by varargin, whichever is larger
     for n = 1:max([elsize vasize])
-      # use prepareIdx() until both dimensions has the same this in iterate 'n'
+
+    # for each n, use prepareIdx() to create a cell of indices for each dimension.
       if ((n <= elsize) && (n <= vasize)) # n is within varargin and elsize
         idx{1,n} = prepareIdx(varargin{n}, element, n)(:)';
+      #if elsize ~= vasize, fill remaining cells according to which is bigger
       elseif (elsize > vasize)  
         idx{1,n} = 1:size(element,n); #will give [1,2,3,...,size(el,n)], for dims not covered by varargin, essentially leaving them alone
       else
-        idx{1,n} = ones(1,varargin{n}); # will give [1 1 1 1 1 ... 1] for replicating in the nth dimension for varagins addressing trailing singletons in element
+        idx{1,n} = ones(1,varargin{n}); # will give [1 1 1 1 1 ... 1] for simple replication in the nth dimension for varagins addressing trailing singletons
           
       endif
     endfor
       
-    ret = element(idx{:});
+    ret = element(idx{:}); #use completed idx to specify repitition of element values in all dimensions
   
   endif
 
