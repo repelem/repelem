@@ -85,7 +85,7 @@ function ret = repelem(element, varargin)
     endif 
     
     
-    if (all(cellfun(@isscalar, varargin)))  
+    if (all(scalarv))  
       
       # preallocate ret to handle eldims>2 with :
       ret = zeros([elsize(1)*varargin{1}, elsize(2)*varargin{2}, elsize(3:end)]);
@@ -147,12 +147,12 @@ function ret = repelem(element, varargin)
     # then, if there are fewer varargin inputs than element dimensions, pad 
     # remaining dimensions with [1:size(el,n)], essentially leaving that dim alone
     if (eldims > vasize)  
-      idx(vasize+1:eldims) = cellfun(@colon, {1}, num2cell(elsize(vasize+1:end)), 'UniformOutput', false);
+      idx(vasize+1:eldims) = cellfun(@colon, {1}, num2cell(elsize(vasize + 1:end)), 'UniformOutput', false);
     
     # if instead there are more varargin inputs than element dimensions, 
     # add [1 1 1 1 1... 1] to those dims to effect concatenation in those dims.
     elseif (vasize > eldims)
-      idx(eldims + 1:vasize) = cellfun(@ones, {1}, {varargin(eldims+1:end){:}}, 'UniformOutput', false);
+      idx(eldims + 1:vasize) = cellfun(@ones, {1}, {varargin(eldims + 1:end){:}}, 'UniformOutput', false);
     
     endif
     
