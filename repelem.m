@@ -56,8 +56,34 @@ function ret = repelem(element, varargin)
       error("varargin{1} must be a scalar or the same length as element")
       
     endif
+  
+  elseif (nargin == 3)  #can handle 2D matrix operations without cells arrays
+    eldims = ndims(element);
+    elsize = size(element);
     
-  elseif (nargin > 2)
+    if (all(cellfun(@isscalar, varargin)))  
+      
+      %preallocate ret to handle eldims>2 with :
+      ret = zeros([elsize(1)*varargin{1},elsize(2)*varargin{2},elsize(3:end)]);
+      
+      idx1 = (1:elsize(1))(ones(1,varargin{1}),:);
+      idx2 = (1:elsize(2))(ones(1,varargin{2}),:);
+    
+    else
+      #preconditioning ret is easier for all vectors or all scalars, make any scalar a vector (if no scalars do nothing)
+      scalarv = cellfun(@isscalar, varargin); 
+      varargin(scalarv) = elsize(scalarv)(ones(1,elsize(scalarv)));
+        
+      ret = zeros([sum(varargin{1}),sum(varargin{2}),elsize(3:end)]);
+
+      idx1 = prepareIdx(varargin{1},elsize(1));
+      idx2 = prepareIdx(varargin{2},elsize(2));
+         
+    endif
+  
+    ret = element(idx1,idx2,:);
+
+  elseif (nargin > 3)
   
     ## INPUT CHECK
     
