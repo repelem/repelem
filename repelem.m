@@ -21,7 +21,13 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {Function File} {} repelem (@var{X}, @var{R})
+## @deftypefnx {Function File} {} repelem (@var{X}, @var{R1}, @dots{}, @var{Rn})
 ## Construct an array of repeated elements from X.
+##
+## @var{X} must be a scalar, a vector or an array.
+##
+## @var{Rn} must either be scalar or have the same number of elements as the 
+## size of dimension n of the array to be replicated.
 ##
 ## @seealso{cat korn repmat}
 ## @end deftypefn
@@ -30,7 +36,7 @@
 function ret = repelem(element, varargin)
 
   if (nargin == 1)
-    error("Not enough input arguments")
+    error("repelem: Not enough input arguments")
     
   elseif (nargin == 2)
   
@@ -38,26 +44,31 @@ function ret = repelem(element, varargin)
     
     if (isscalar(v))
             
-      if iscolumn(element)
-        ret = element(:, ones(v, 1))'(:); #element values repeated v times in a col vector 
-      elseif isrow(element)
-        ret = element(ones(v, 1), :)(:)'; #element values repeated v times in a row vector 
+      if (iscolumn(element))
+        # element values repeated v times in a col vector
+        ret = element(:, ones(v, 1))'(:); 
+      elseif (isrow(element))
+        # element values repeated v times in a row vector
+        ret = element(ones(v, 1), :)(:)'; 
       else
-        error("%gD Array objects requires %g input arguments, only %g given", ndims(element), ndims(element) + 1, nargin);
+        error("repelem: %gD Array objects requires %g input arguments, only %g given", ndims(element), ndims(element) + 1, nargin);
       endif
       
-    elseif isvector(element) && (length(v) == length(element))
-      #vector element with vector varargin. basic run-length decoding in function prepareIdx
-      idx2 = prepareIdx(v); #returned idx2 has a row vect. of element indices in right position
-      ret  = element(idx2); #fills with element values, direction matches element.
+    elseif (isvector(element) && (length(v) == length(element)))
+      # vector element with vector varargin. basic run-length decoding in function prepareIdx
+      # returned idx2 has a row vect. of element indices in right position
+      idx2 = prepareIdx(v);
+      # fills with element values, direction matches element. 
+      ret  = element(idx2);
   
       
     else
-      error("varargin{1} must be a scalar or the same length as element")
+      error("repelem: varargin{1} must be a scalar or the same length as element")
       
     endif
   
-  elseif (nargin == 3)  #can handle 2D matrix operations without cells arrays
+  # can handle 2D matrix operations without cells arrays
+  elseif (nargin == 3)
     eldims = ndims(element);
     elsize = size(element);
     scalarv = cellfun(@isscalar, varargin);     
@@ -65,82 +76,88 @@ function ret = repelem(element, varargin)
     ##INPUT CHECK
     # check: that all varargin are either scalars or vectors, no arrays. isvector gives true for scalars.
     if (~all(cellfun(@isvector, varargin))) 
-      error("varargin must be all be scalars or vectors");
+      error("repelem: varargin must be all be scalars or vectors");
+      
     # check that the ones that are vectors have the right length.
     elseif (~all(cellfun(@length, varargin(~scalarv)) == size(element)(~scalarv)))
-      error("varargin(n) must either be scalar or have the same number of elements as the size of dimension n of the array to be replicated");        
+      error("repelem: varargin(n) must either be scalar or have the same number of elements as the size of dimension n of the array to be replicated");        
      
     endif 
     
     
     if (all(cellfun(@isscalar, varargin)))  
       
-      %preallocate ret to handle eldims>2 with :
-      ret = zeros([elsize(1)*varargin{1},elsize(2)*varargin{2},elsize(3:end)]);
+      # preallocate ret to handle eldims>2 with :
+      ret = zeros([elsize(1)*varargin{1}, elsize(2)*varargin{2}, elsize(3:end)]);
       
-      idx1 = (1:elsize(1))(ones(1,varargin{1}),:);
-      idx2 = (1:elsize(2))(ones(1,varargin{2}),:);
+      idx1 = (1:elsize(1))(ones(1, varargin{1}), :);
+      idx2 = (1:elsize(2))(ones(1, varargin{2}), :);
     
     else
-      #preconditioning ret is easier for all vectors or all scalars, make any scalar a vector (if no scalars do nothing)
-      if (xor(cellfun(@isscalar, varargin,'UniformOutput',false){:}))
-        varargin(scalarv) = varargin{scalarv}(ones(1,elsize(scalarv)));
+    
+      # preconditioning ret is easier for all vectors or all scalars, 
+      # make any scalar a vector (if no scalars do nothing)
+      if (xor(cellfun(@isscalar, varargin, 'UniformOutput', false){:}))
+        varargin(scalarv) = varargin{scalarv}(ones(1, elsize(scalarv)));
       endif
 
-      ret = zeros([sum(varargin{1}),sum(varargin{2}),elsize(3:end)]);
+      ret = zeros([sum(varargin{1}), sum(varargin{2}), elsize(3:end)]);
 
       idx1 = prepareIdx(varargin{1},elsize(1));
       idx2 = prepareIdx(varargin{2},elsize(2));
          
     endif
   
-    ret = element(idx1,idx2,:);
+    ret = element(idx1, idx2, :);
 
   elseif (nargin > 3)
   
     ## INPUT CHECK
     
-    #avoid repeated function calls
+    # avoid repeated function calls
     eldims = ndims(element);
     elsize = size(element);
     vasize = numel(varargin);
     maxDim = max([eldims vasize]);
     minDim = min([eldims vasize]);
-    dims_with_both=min(eldims,vasize);
+    dims_with_both = min(eldims, vasize);
 
     nonscalarv = ~cellfun(@isscalar, varargin);
     
     # 1st check: that they are all scalars or vectors. isvector gives true for scalars.
     if (~all(cellfun(@isvector, varargin))) 
-      error("varargin must be all be scalars or vectors");
+      error("repelem: varargin must be all be scalars or vectors");
     
     # 2nd check: catch any vectors thrown at trailing singletons, which should only have scalars.
     elseif (max(find(nonscalarv)) > eldims)
-      error("varargin(n) for trailing singleton dimensions must be scalar");        
+      error("repelem: varargin(n) for trailing singleton dimensions must be scalar");        
     
     # 3rd check: that the ones that are vectors have the right length.
     elseif (~all(cellfun(@length, varargin(nonscalarv)) == size(element)(nonscalarv)))
-      error("varargin(n) must either be scalar or have the same number of elements as the size of dimension n of the array to be replicated");        
+      error("repelem: varargin(n) must either be scalar or have the same number of elements as the size of dimension n of the array to be replicated");        
       
     endif 
     
-    #firts, preallocate idx which will contain index array to be put into element
+    # firts, preallocate idx which will contain index array to be put into element
     idx = cell(1, maxDim);
 
     # use prepareIdx() to fill indices for each dimension that could be a scalar or vector
     idx(1:minDim) = cellfun(@prepareIdx, varargin(1:minDim), num2cell(elsize(1:minDim)), 'UniformOutput', false);
 
-    # then, if there are fewer varargin inputs than element dimensions, pad remaining dimensions with [1:size(el,n)], essentially leaving that dim alone
+    # then, if there are fewer varargin inputs than element dimensions, pad 
+    # remaining dimensions with [1:size(el,n)], essentially leaving that dim alone
     if (eldims > vasize)  
       idx(vasize+1:eldims) = cellfun(@colon, {1}, num2cell(elsize(vasize+1:end)), 'UniformOutput', false);
     
-    # if instead there are more varargin inputs than element dimensions, add [1 1 1 1 1... 1] to those dims to effect concatenation in those dims.
+    # if instead there are more varargin inputs than element dimensions, 
+    # add [1 1 1 1 1... 1] to those dims to effect concatenation in those dims.
     elseif (vasize > eldims)
-      idx(eldims+1:vasize) = cellfun(@ones, {1}, {varargin(eldims+1:end){:}}, 'UniformOutput', false);
+      idx(eldims + 1:vasize) = cellfun(@ones, {1}, {varargin(eldims+1:end){:}}, 'UniformOutput', false);
     
     endif
     
-    ret = element(idx{:}); #use completed idx to specify repitition of element values in all dimensions
+    # use completed idx to specify repitition of element values in all dimensions
+    ret = element(idx{:});
   
   endif
 
@@ -148,11 +165,11 @@ endfunction
 
 
 function idx2 = prepareIdx(v, elsize_n)
-  #returns a row vector of indices prepared for replicating.
+# returns a row vector of indices prepared for replicating.
 
   if (isscalar(v))
-
-    idx2 = [1:elsize_n](ones(v,1), :)(:)'; #will always return row vector
+    # will always return row vector
+    idx2 = [1:elsize_n](ones(v, 1), :)(:)'; 
 
   else
   
@@ -182,3 +199,5 @@ endfunction
 %!assert (repelem(cat(3,[1 1 1 0;0 1 0 0],[1 1 1 1;0 0 0 1],[1 0 0 1;1 1 0 1]), 2, 3), cat(3,[1 1 1 1 1 1 1 1 1 0 0 0;1 1 1 1 1 1 1 1 1 0 0 0;0 0 0 1 1 1 0 0 0 0 0 0;0 0 0 1 1 1 0 0 0 0 0 0],[1 1 1 1 1 1 1 1 1 1 1 1;1 1 1 1 1 1 1 1 1 1 1 1;0 0 0 0 0 0 0 0 0 1 1 1;0 0 0 0 0 0 0 0 0 1 1 1],[1 1 1 0 0 0 0 0 0 1 1 1;1 1 1 0 0 0 0 0 0 1 1 1;1 1 1 1 1 1 0 0 0 1 1 1;1 1 1 1 1 1 0 0 0 1 1 1]))
 %!assert (repelem(cat(3,[1 1 1 0;0 1 0 0],[1 1 1 1;0 0 0 1],[1 0 0 1;1 1 0 1]), 2, [3 3 3 3]),cat(3,[1 1 1 1 1 1 1 1 1 0 0 0;1 1 1 1 1 1 1 1 1 0 0 0;0 0 0 1 1 1 0 0 0 0 0 0;0 0 0 1 1 1 0 0 0 0 0 0],[1 1 1 1 1 1 1 1 1 1 1 1;1 1 1 1 1 1 1 1 1 1 1 1;0 0 0 0 0 0 0 0 0 1 1 1;0 0 0 0 0 0 0 0 0 1 1 1],[1 1 1 0 0 0 0 0 0 1 1 1;1 1 1 0 0 0 0 0 0 1 1 1;1 1 1 1 1 1 0 0 0 1 1 1;1 1 1 1 1 1 0 0 0 1 1 1]))
 %!assert (repelem([1,0,-1;-1,0,1],[2 3],[2 3 4],2),cat(3,[1 1 0 0 0 -1 -1 -1 -1;1 1 0 0 0 -1 -1 -1 -1;-1 -1 0 0 0 1 1 1 1;-1 -1 0 0 0 1 1 1 1;-1 -1 0 0 0 1 1 1 1],[1 1 0 0 0 -1 -1 -1 -1;1 1 0 0 0 -1 -1 -1 -1;-1 -1 0 0 0 1 1 1 1;-1 -1 0 0 0 1 1 1 1;-1 -1 0 0 0 1 1 1 1]))
+%!error  (repelem([1 2 3; 3 2 1], 1, [1 2]))
+%!error  (repelem([1 2 3; 3 2 1], 1, [1 2 2 1]))
