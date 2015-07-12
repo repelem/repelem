@@ -33,22 +33,23 @@ function ret = repelem(element, varargin)
     error("Not enough input arguments")
     
   elseif (nargin == 2)
-  
+      #row or column vector, one scalar or vector replication input
+      
     v = varargin{1};
     
     if (isscalar(v))
             
       if iscolumn(element)
-        ret = element(:, ones(v, 1))'(:);
+        ret = element(:, ones(v, 1))'(:); #element values repeated v times in a col vector 
       elseif isrow(element)
-        ret = element(ones(v, 1), :)(:)';
+        ret = element(ones(v, 1), :)(:)'; #element values repeated v times in a row vector 
       else
         error("%gD Array objects requires %g input arguments, only %g given", ndims(element), ndims(element) + 1, nargin);
       endif
       
     elseif isvector(element) && (length(v) == length(element))
       #vector element with vector varargin. basic run-length decoding in function prepareIdx
-      idx2 = prepareIdx(v); #returned idx2 has an array of element indices in right position. 
+      idx2 = prepareIdx(v); #returned idx2 has a row vect. of element indices in right position
       ret  = element(idx2); #fills with element values, direction matches element.
   
       
@@ -62,7 +63,8 @@ function ret = repelem(element, varargin)
     ## INPUT CHECK
     
     #avoid repeated function calls
-    elsize = ndims(element);
+    eldims = ndims(element);
+    elsize = size(element);
     vasize = numel(varargin);
     nonscalarv = ~cellfun(@isscalar, varargin);
     
@@ -71,7 +73,7 @@ function ret = repelem(element, varargin)
       error("varargin must be all be scalars or vectors");
     
     # 2nd check: catch any vectors thrown at trailing singletons, which should only have scalars.
-    elseif (max(find(nonscalarv)) > elsize)
+    elseif (max(find(nonscalarv)) > eldims)
       error("varargin(n) for trailing singleton dimensions must be scalar");        
     
     # 3rd check: that the ones that are vectors have the right length.
@@ -81,16 +83,18 @@ function ret = repelem(element, varargin)
     endif 
     
     #preallocate idx which will contain index array to be put into element
-    idx = cell(1,1:max([elsize vasize]));
+    idx = cell(1,1:max([eldims vasize]));
 
     # iterate over each dimension of element, or the number specified by varargin, whichever is larger
-    for n = 1:max([elsize vasize])
+    for n = 1:max([eldims vasize])
 
     # for each n, use prepareIdx() to create a cell of indices for each dimension.
-      if ((n <= elsize) && (n <= vasize)) # n is within varargin and elsize
-        idx{1,n} = prepareIdx(varargin{n}, element, n)(:)';
-      #if elsize ~= vasize, fill remaining cells according to which is bigger
-      elseif (elsize > vasize)  
+      if ((n <= eldims) && (n <= vasize)) # n is within varargin and eldims
+
+        idx{1,n} = prepareIdx(varargin{n}, elsize(n)); %prepareIdx always returns row vect
+
+      #if eldims ~= vasize, fill remaining cells according to which is bigger
+      elseif (eldims > vasize)  
         idx{1,n} = 1:size(element,n); #will give [1,2,3,...,size(el,n)], for dims not covered by varargin, essentially leaving them alone
       else
         idx{1,n} = ones(1,varargin{n}); # will give [1 1 1 1 1 ... 1] for simple replication in the nth dimension for varagins addressing trailing singletons
@@ -105,20 +109,21 @@ function ret = repelem(element, varargin)
 endfunction
 
 
-function idx2 = prepareIdx(v, element, n)
+function idx2 = prepareIdx(v, elsize_n)
+  #returns a row vector of indices prepared for replicating.
 
   if (isscalar(v))
-  
-    idx2 = repmat(1:size(element, n), v, 1)(:);
-  
+
+    idx2 = [1:elsize_n](ones(v,1),:)(:)';#will always return row vector
+
   else
   
-    # works for row or column vector. output direction will match element
+    # works for row or column vector. idx2 output will be a row vector.
     idx1 = cumsum(v); # gets ending position for each element item
     idx2(1:idx1(end)) = 0; # row vector with enough space for output
     idx2(idx1(1:end - 1) + 1) = 1; # sets starting position of each element to 1
     idx2(1) = 1; # sets starting position of each element to 1
-    idx2 = cumsum(idx2);
+    idx2 = cumsum(idx2); #with prepared index
     
   endif
   
