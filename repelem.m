@@ -60,6 +60,18 @@ function ret = repelem(element, varargin)
   elseif (nargin == 3)  #can handle 2D matrix operations without cells arrays
     eldims = ndims(element);
     elsize = size(element);
+    scalarv = cellfun(@isscalar, varargin);     
+    
+    ##INPUT CHECK
+    # check: that all varargin are either scalars or vectors, no arrays. isvector gives true for scalars.
+    if (~all(cellfun(@isvector, varargin))) 
+      error("varargin must be all be scalars or vectors");
+    # check that the ones that are vectors have the right length.
+    elseif (~all(cellfun(@length, varargin(~scalarv)) == size(element)(~scalarv)))
+      error("varargin(n) must either be scalar or have the same number of elements as the size of dimension n of the array to be replicated");        
+     
+    endif 
+    
     
     if (all(cellfun(@isscalar, varargin)))  
       
@@ -71,9 +83,10 @@ function ret = repelem(element, varargin)
     
     else
       #preconditioning ret is easier for all vectors or all scalars, make any scalar a vector (if no scalars do nothing)
-      scalarv = cellfun(@isscalar, varargin); 
-      varargin(scalarv) = elsize(scalarv)(ones(1,elsize(scalarv)));
-        
+      if (xor(cellfun(@isscalar, varargin,'UniformOutput',false){:}))
+        varargin(scalarv) = varargin{scalarv}(ones(1,elsize(scalarv)));
+      endif
+
       ret = zeros([sum(varargin{1}),sum(varargin{2}),elsize(3:end)]);
 
       idx1 = prepareIdx(varargin{1},elsize(1));
