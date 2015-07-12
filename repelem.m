@@ -65,6 +65,7 @@ function ret = repelem(element, varargin)
     eldims = ndims(element);
     elsize = size(element);
     vasize = numel(varargin);
+    maxDim = max([eldims vasize]);
     dims_with_both=min(eldims,vasize);
 
     nonscalarv = ~cellfun(@isscalar, varargin);
@@ -84,21 +85,22 @@ function ret = repelem(element, varargin)
     endif 
     
     #preallocate idx which will contain index array to be put into element
-    idx = cell(1,max([eldims vasize]));
+    idx = cell(1, maxDim);
 
     # iterate over each dimension of element, or the number specified by varargin, whichever is larger
-    for n = 1:max([eldims vasize])
+    for n = 1:maxDim
 
     # for each n, use prepareIdx() to create a cell of indices for each dimension.
       if (n <= dims_with_both)# n is within varargin and eldims
 
-        idx{1,n} = prepareIdx(varargin{n}, elsize(n)); %prepareIdx always returns row vect
+        idx{1,n} = prepareIdx(varargin{n}, elsize(n)); # prepareIdx always returns row vect
 
       #if eldims ~= vasize, fill remaining cells according to which is bigger
       elseif (eldims > vasize)  
-        idx{1,n} = 1:size(element,n); #will give [1,2,3,...,size(el,n)], for dims not covered by varargin, essentially leaving them alone
+        idx{1,n} = 1:size(element, n); #will give [1,2,3,...,size(el,n)], for dims not covered by varargin, essentially leaving them alone
+        
       else
-        idx{1,n} = ones(1,varargin{n}); # will give [1 1 1 1 1 ... 1] for simple replication in the nth dimension for varagins addressing trailing singletons
+        idx{1,n} = ones(1, varargin{n}); # will give [1 1 1 1 1 ... 1] for simple replication in the nth dimension for varagins addressing trailing singletons
           
       endif
     endfor
@@ -115,7 +117,7 @@ function idx2 = prepareIdx(v, elsize_n)
 
   if (isscalar(v))
 
-    idx2 = [1:elsize_n](ones(v,1),:)(:)';#will always return row vector
+    idx2 = [1:elsize_n](ones(v,1), :)(:)'; #will always return row vector
 
   else
   
