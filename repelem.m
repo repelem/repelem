@@ -33,8 +33,7 @@ function ret = repelem(element, varargin)
     error("Not enough input arguments")
     
   elseif (nargin == 2)
-      #row or column vector, one scalar or vector replication input
-      
+  
     v = varargin{1};
     
     if (isscalar(v))
