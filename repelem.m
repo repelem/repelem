@@ -133,12 +133,12 @@ function ret = repelem(element, varargin)
       error("repelem: varargin(n) for trailing singleton dimensions must be scalar");        
     
     # 3rd check: that the ones that are vectors have the right length.
-    elseif (~all(cellfun(@length, varargin(nonscalarv)) == size(element)(nonscalarv)))
+    elseif (~all(cellfun('length', varargin(nonscalarv)) == size(element)(nonscalarv)))
       error("repelem: varargin(n) must either be scalar or have the same number of elements as the size of dimension n of the array to be replicated");        
       
     endif 
     
-    # firts, preallocate idx which will contain index array to be put into element
+    # first, preallocate idx which will contain index array to be put into element
     idx = cell(1, maxDim);
 
     # use prepareIdx() to fill indices for each dimension that could be a scalar or vector
