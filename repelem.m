@@ -35,7 +35,7 @@
 
 function ret = repelem(element, varargin)
 
-  if (nargin == 1)
+  if (nargin <= 1)
     error("repelem: Not enough input arguments")
     
   elseif (nargin == 2)
@@ -51,7 +51,7 @@ function ret = repelem(element, varargin)
         # element values repeated v times in a row vector
         ret = element(ones(v, 1), :)(:)'; 
       else
-        error("repelem: %gD Array objects requires %g input arguments, only %g given", ndims(element), ndims(element) + 1, nargin);
+        error("repelem: %gD Array objects require %g or more input arguments, only %g given", ndims(element), ndims(element) + 1, nargin);
       endif
       
     elseif (isvector(element) && (length(v) == length(element)))
@@ -60,60 +60,41 @@ function ret = repelem(element, varargin)
       idx2 = prepareIdx(v);
       # fills with element values, direction matches element. 
       ret  = element(idx2);
-  
-      
+        
     else
       error("repelem: varargin{1} must be a scalar or the same length as element")
       
     endif
   
-  # can handle 2D matrix operations without cells arrays
-  elseif (nargin == 3)
-    eldims = ndims(element);
+  
+  elseif (nargin == 3)  #can simplify for known dimension count
+    
+    #avoid repeated function calls
     elsize = size(element);
-    scalarv = cellfun(@isscalar, varargin);     
+    scalarv = cellfun('numel', varargin)==1;  #'numel' or 'length' faster than isvector in cellfun
     
     ##INPUT CHECK
+
     # check: that all varargin are either scalars or vectors, no arrays. isvector gives true for scalars.
-    if (~all(cellfun(@isvector, varargin))) 
-      error("repelem: varargin must be all be scalars or vectors");
-      
+    # (Faster here with only two to avoid cellfun)
+    if (~(isvector(varargin{2})&&isvector(varargin{2}))) 
+      error("repelem: varargin must be all scalars or vectors");
+
     # check that the ones that are vectors have the right length.
-    elseif (~all(cellfun(@length, varargin(~scalarv)) == size(element)(~scalarv)))
+    elseif (any(~(cellfun('length', varargin(~scalarv)) == elsize(~scalarv))))
       error("repelem: varargin(n) must either be scalar or have the same number of elements as the size of dimension n of the array to be replicated");        
-     
     endif 
     
-    
-    if (all(scalarv))  
-      
-      # preallocate ret to handle eldims>2 with :
-      ret = zeros([elsize(1)*varargin{1}, elsize(2)*varargin{2}, elsize(3:end)]);
-      
-      idx1 = (1:elsize(1))(ones(1, varargin{1}), :);
-      idx2 = (1:elsize(2))(ones(1, varargin{2}), :);
-    
-    else
-    
-      # preconditioning ret is easier for all vectors or all scalars, 
-      # make any scalar a vector (if no scalars do nothing)
-      if (xor(cellfun(@isscalar, varargin, 'UniformOutput', false){:}))
-        varargin(scalarv) = varargin{scalarv}(ones(1, elsize(scalarv)));
-      endif
-
-      ret = zeros([sum(varargin{1}), sum(varargin{2}), elsize(3:end)]);
-
-      idx1 = prepareIdx(varargin{1},elsize(1));
-      idx2 = prepareIdx(varargin{2},elsize(2));
-         
-    endif
+    #Create index arrays to pass to element 
+    ##(no slower passing to prepareIdx than checking and doing scalars directly)
+    idx1 = prepareIdx(varargin{1},elsize(1));
+    idx2 = prepareIdx(varargin{2},elsize(2));
   
-    ret = element(idx1, idx2, :);
+    #the : at the end takes care of size(element)>2
+    ret = element(idx1, idx2, :); 
 
-  elseif (nargin > 3)
+  else  #if (nargin > 3) **no need for elseif
   
-    ## INPUT CHECK
-    
     # avoid repeated function calls
     eldims = ndims(element);
     elsize = size(element);
@@ -121,9 +102,10 @@ function ret = repelem(element, varargin)
     maxDim = max([eldims vasize]);
     minDim = min([eldims vasize]);
     dims_with_both = min(eldims, vasize);
-
     nonscalarv = ~cellfun(@isscalar, varargin);
-    
+
+    ## INPUT CHECK
+
     # 1st check: that they are all scalars or vectors. isvector gives true for scalars.
     if (~all(cellfun(@isvector, varargin))) 
       error("repelem: varargin must be all be scalars or vectors");
@@ -201,3 +183,7 @@ endfunction
 %!assert (repelem([1,0,-1;-1,0,1],[2 3],[2 3 4],2),cat(3,[1 1 0 0 0 -1 -1 -1 -1;1 1 0 0 0 -1 -1 -1 -1;-1 -1 0 0 0 1 1 1 1;-1 -1 0 0 0 1 1 1 1;-1 -1 0 0 0 1 1 1 1],[1 1 0 0 0 -1 -1 -1 -1;1 1 0 0 0 -1 -1 -1 -1;-1 -1 0 0 0 1 1 1 1;-1 -1 0 0 0 1 1 1 1;-1 -1 0 0 0 1 1 1 1]))
 %!error  (repelem([1 2 3; 3 2 1], 1, [1 2]))
 %!error  (repelem([1 2 3; 3 2 1], [1 2 2 1]))
+%!error  (repelem([1 2 3; 3 2 1]))
+%!error  (repelem([1 2 3; 3 2 1],2))
+%!error  (repelem([1 2 3; 3 2 1],[1 2 3]))
+%!error  (repelem([1 2 3; 3 2 1],[1 2 3;4 5 6]))
