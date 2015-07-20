@@ -2,6 +2,8 @@
 ## Co-author  Nicholas R. Jankowski <jankowskin@asme.org> **
 ##   ** U.S. government employee, contributions are public domain
 ##      with no personal assertion of copyright
+## prepareIdx routine Copyright (C) 2015 Peter John Acklam <pjacklam@gmail.com>, 
+## used with permission.
 ##
 ## This file is part of Octave.
 ##
@@ -24,10 +26,117 @@
 ## @deftypefnx {Function File} {} repelem (@var{X}, @var{R1}, @dots{}, @var{Rn})
 ## Construct an array of repeated elements from X.
 ##
-## @var{X} must be a scalar, a vector or an array.
+## @var{X} must be a scalar, a vector or a n-dimensional array. 
 ##
-## @var{Rn} must either be scalar or have the same number of elements as the 
-## size of dimension n of the array to be replicated.
+## @var{Rn} must either be scalar or a vectror with the same number of
+## elements as the size of dimension n of the array to be replicated. @var{Rn} may
+## be either row or column vectors.
+##
+## repelem may only be called with a single @var{R} if @var{X} is a scalar or 
+## vector. @var{X} may be either a row or column vector, and repelem will return
+## a replicated vector with the same orientation.  Non-vector @var{X}'s require
+## at least two @var{Rn}'s be specified. (Using repelem with a vector @var{X} and 
+## a vector for @var{Rn} is equivalent to Run Length Decoding.)
+##
+##@example
+##A = [1 2 3 4 5];
+##B = [2 1 0 1 2];
+##repelem(A,B)
+##  ==>    1   1   2   4   5   5
+##@end example
+##@example
+##A = magic(3)
+##  ==>    8   1   6
+##         3   5   7
+##         4   9   2
+##B1 = [1 2 3];
+##B2 = 2;
+##repelem(A,B1,B2)
+##  ==>    8   8   1   1   6   6
+##         3   3   5   5   7   7
+##         3   3   5   5   7   7
+##         4   4   9   9   2   2
+##         4   4   9   9   2   2
+##         4   4   9   9   2   2
+##@end example
+##
+## More @var{Rn} may be specified than the number of dimensions of @var{X}.
+## Those excess @var{Rn} must be scalars (because @var{X}'s size in those 
+## dimensions is only 1), and @var{X} will be replicated in those dimension 
+## accordingly. 
+##  
+##@example
+## A = [1 2 3 4 5];
+## B1 = 2;
+## B2 = [2 1 3 0 2];
+## B3 = 3;
+## repelem(A,B1,B2,B3)
+##  ==>    ans(:,:,1) =
+##            1   1   2   3   3   3   5   5
+##            1   1   2   3   3   3   5   5
+##         
+##         ans(:,:,2) =
+##         
+##            1   1   2   3   3   3   5   5
+##            1   1   2   3   3   3   5   5
+##         
+##         ans(:,:,3) =
+##            1   1   2   3   3   3   5   5
+##            1   1   2   3   3   3   5   5
+##@end example
+##
+## @var{Rn} must be specified in order. A placeholder of 1 can be used in 
+## deminsions not needing replication. [] inputs will produce an error. 
+##
+##@example
+## repelem([-1 0;0 1],2,1,1,2)
+##  ==>  ans(:,:,1,1) =
+##         -1  -1   0   0
+##          0   0   1   1
+##
+##       ans(:,:,1,2) =
+##         -1  -1   0   0
+##          0   0   1   1 
+##@end example
+##
+## If fewer @var{Rn} are given than dimensions in @var{X}, repelem will assume a 
+## @var{Rn} of 1 for those dimensions.
+##
+##@example
+## A = cat(3,[-1 0;0 1],[-1 0;0 1])
+##  ==>  ans(:,:,1) =
+##         -1   0
+##          0   1
+##
+##       ans(:,:,2) =
+##         -1   0
+##          0   1
+##
+## repelem(A,2,3)
+##  ==>  ans(:,:,1) =
+##         -1  -1  -1   0   0   0
+##         -1  -1  -1   0   0   0
+##          0   0   0   1   1   1
+##          0   0   0   1   1   1
+##
+##       ans(:,:,2) =
+##         -1  -1  -1   0   0   0
+##         -1  -1  -1   0   0   0
+##          0   0   0   1   1   1
+##          0   0   0   1   1   1
+##@end example 
+##
+## repelem will preserve the class of @var{X}, and works with strings, NA and
+## NAN inputs. Any @var{Rn} = 0 will produce an empty array. 
+##
+##@example
+## repelem('Octave',2,3)
+##  ==>    OOOccctttaaavvveee
+##         OOOccctttaaavvveee
+##
+##repelem([1 2 3;1 2 3],2,0)
+##  ==>    [](4x0)
+##@end example
 ##
 ## @seealso{cat korn repmat}
 ## @end deftypefn
@@ -164,11 +273,20 @@ function idx = prepareIdx(v, elsize_n)
   
 endfunction
 
+%%%tests for help examples
+%!assert (repelem([1 2 3 4 5], [2 1 0 1 2]), [1 1 2 4 5 5])
+%!assert (repelem(magic(3), [1 2 3],2), [8 8 1 1 6 6;3 3 5 5 7 7;3 3 5 5 7 7;4 4 9 9 2 2;4 4 9 9 2 2;4 4 9 9 2 2])
+%!assert (repelem([1 2 3 4 5],2,[2 1 3 0 2],3) repmat([1 1 2 3 3 3 5 5],2,1,3))
+%!assert (repelem([-1 0;0 1],2,1,1,2), repmat([-1 -1 0 0; 0 0 1 1],1,1,2))
+%!assert (repelem(cat(3,[-1 0 ; 0 1],[-1 0 ; 0 1]),2,3), repmat([-1 -1 -1 0 0 0;-1 -1 -1 0 0 0;0 0 0 1 1 1;0 0 0 1 1 1],1,1,2))
+%!assert (repelem('Octave', 2,3), ['OOOccctttaaavvveee';'OOOccctttaaavvveee'])
+%
 %%%nargin ==2 tests
 %!assert (repelem([-1 0 1], 2), [-1 -1 0 0 1 1])
 %!assert (repelem([-1 0 1]', 2), [-1; -1; 0; 0; 1; 1;])
 %!assert (repelem([-1 0 1], [1 2 1]), [-1 0 0 1]) 
 %!assert (repelem([-1 0 1]', [1 2 1]), [-1; 0; 0; 1])
+%!assert (repelem([1 2 3 4 5]', [2 1 0 1 2]), [1 1 2 4 5 5]')
 %
 %%%nargin ==3 tests
 %!assert (repelem([1 0;0 -1], 2, 3),  [1 1 1 0 0 0;1 1 1 0 0 0;0 0 0 -1 -1 -1;0 0 0 -1 -1 -1])
@@ -180,6 +298,7 @@ endfunction
 %!assert (repelem([1 0; 0 -1], [2 3] ,[3 2]), [1 1 1 0 0;1 1 1 0 0;0 0 0 -1 -1;0 0 0 -1 -1;0 0 0 -1 -1])
 %!assert (repelem(cat(3,[1 1 1 0;0 1 0 0],[1 1 1 1;0 0 0 1],[1 0 0 1;1 1 0 1]), 2, 3), cat(3,[1 1 1 1 1 1 1 1 1 0 0 0;1 1 1 1 1 1 1 1 1 0 0 0;0 0 0 1 1 1 0 0 0 0 0 0;0 0 0 1 1 1 0 0 0 0 0 0],[1 1 1 1 1 1 1 1 1 1 1 1;1 1 1 1 1 1 1 1 1 1 1 1;0 0 0 0 0 0 0 0 0 1 1 1;0 0 0 0 0 0 0 0 0 1 1 1],[1 1 1 0 0 0 0 0 0 1 1 1;1 1 1 0 0 0 0 0 0 1 1 1;1 1 1 1 1 1 0 0 0 1 1 1;1 1 1 1 1 1 0 0 0 1 1 1]))
 %!assert (repelem(cat(3,[1 1 1 0;0 1 0 0],[1 1 1 1;0 0 0 1],[1 0 0 1;1 1 0 1]), 2, [3 3 3 3]),cat(3,[1 1 1 1 1 1 1 1 1 0 0 0;1 1 1 1 1 1 1 1 1 0 0 0;0 0 0 1 1 1 0 0 0 0 0 0;0 0 0 1 1 1 0 0 0 0 0 0],[1 1 1 1 1 1 1 1 1 1 1 1;1 1 1 1 1 1 1 1 1 1 1 1;0 0 0 0 0 0 0 0 0 1 1 1;0 0 0 0 0 0 0 0 0 1 1 1],[1 1 1 0 0 0 0 0 0 1 1 1;1 1 1 0 0 0 0 0 0 1 1 1;1 1 1 1 1 1 0 0 0 1 1 1;1 1 1 1 1 1 0 0 0 1 1 1]))
+%!assert (repelem([1 2 3 4 5], 2,[2 1 2 0 2]), [1 1 2 3 3 5 5;1 1 2 3 3 5 5])
 %
 %%%nargin > 3 tests
 %!assert (repelem([1 0;0 -1], 2, 3, 4), cat(3,[1 1 1 0 0 0;1 1 1 0 0 0;0 0 0 -1 -1 -1;0 0 0 -1 -1 -1],[1 1 1 0 0 0;1 1 1 0 0 0;0 0 0 -1 -1 -1;0 0 0 -1 -1 -1],[1 1 1 0 0 0;1 1 1 0 0 0;0 0 0 -1 -1 -1;0 0 0 -1 -1 -1],[1 1 1 0 0 0;1 1 1 0 0 0;0 0 0 -1 -1 -1;0 0 0 -1 -1 -1]))
@@ -187,9 +306,11 @@ endfunction
 %!assert (repelem(repmat([-1 0;0 1],1,1,2,3),[2 2],[2 2],2), repmat([-1 -1 0 0;-1 -1 0 0;0 0 1 1; 0 0 1 1],1,1,4,3))
 %!assert (repelem(repmat([-1 0;0 1],1,1,2,3),2,2,2,2,2), repmat([-1 -1 0 0;-1 -1 0 0;0 0 1 1; 0 0 1 1],1,1,4,6,2))
 %!assert (repelem([1,0,-1;-1,0,1],[2 3],[2 3 4],2),cat(3,[1 1 0 0 0 -1 -1 -1 -1;1 1 0 0 0 -1 -1 -1 -1;-1 -1 0 0 0 1 1 1 1;-1 -1 0 0 0 1 1 1 1;-1 -1 0 0 0 1 1 1 1],[1 1 0 0 0 -1 -1 -1 -1;1 1 0 0 0 -1 -1 -1 -1;-1 -1 0 0 0 1 1 1 1;-1 -1 0 0 0 1 1 1 1;-1 -1 0 0 0 1 1 1 1]))
+%!assert (repelem([1 2 3;4 5 6],[0 2],2,2), repmat([4 4 5 5 6 6],2,1,2))
 %
 %%%nargin <= 1 error tests
 %!error  (repelem())
+%!error  (repelem([]))
 %!error  (repelem(5))
 %!error  (repelem(5,[]))
 %!error  (repelem([1 2 3 3 2 1]))
@@ -197,6 +318,7 @@ endfunction
 %
 %%%nargin == 2 error tests
 %!error  (repelem([1 2 3; 3 2 1],[]))
+%!error  (repelem([1 2 3; 3 2 1],2))
 %!error  (repelem([1 2 3; 3 2 1],2))
 %!error  (repelem([1 2 3; 3 2 1],[1 2 3]))
 %!error  (repelem([1 2 3; 3 2 1],[1 2 3]'))
@@ -206,12 +328,14 @@ endfunction
 %%%nargin == 3 error tests
 %!error  (repelem([1 2 3; 3 2 1], 1, [1 2;1 2]))
 %!error  (repelem([1 2 3; 3 2 1], 1, [1 2]))
+%!error  (repelem([1 2 3; 3 2 1], 2, []))
 %!error  (repelem([1 2 3; 3 2 1], [1 2 3], [1 2 3]))
 %!error  (repelem([1 2 3; 3 2 1], [1 2 3], [1 2 3 4]))
 %!error  (repelem([1 2 3; 3 2 1], [1 2], [1 2 3 4]))
 %
 %%%nargin > 3 error tests
 %!error  (repelem([1 2 3; 3 2 1], 1, [1 2;1 2],1,2,3))
+%!error  (repelem([1 2 3; 3 2 1], [],1,2,3))
 %!error  (repelem([1 2 3; 3 2 1], [1 2], [1 2 3],1,2,[1 2;1 2]))
 %!error  (repelem([1 2 3; 3 2 1], [1 2 3], [1 2 3],1,2))
 %!error  (repelem([1 2 3; 3 2 1], [1 2], [1 2 3 4],1,2))
