@@ -89,7 +89,7 @@
 ## deminsions not needing replication. [] inputs will produce an error. 
 ##
 ##@example
-## repelem([-1 0;0 1],2,1,1,2)
+## repelem([-1 0;0 1],1,2,1,2)
 ##  ==>  ans(:,:,1,1) =
 ##         -1  -1   0   0
 ##          0   0   1   1
@@ -267,7 +267,7 @@ function idx = prepareIdx(v, elsize_n)
     idx(1:idx_temp(end)) = 0; # row vector with enough space for output
     idx(idx_temp(1:end - 1) + 1) = 1; # sets starting position of each element to 1
     idx(1) = 1; # sets starting position of each element to 1
-    idx = cumsum(idx); #with prepared index
+    idx = (find(v~=0))(cumsum(idx)); #with prepared index
     
   endif
   
@@ -276,8 +276,8 @@ endfunction
 %%%tests for help examples
 %!assert (repelem([1 2 3 4 5], [2 1 0 1 2]), [1 1 2 4 5 5])
 %!assert (repelem(magic(3), [1 2 3],2), [8 8 1 1 6 6;3 3 5 5 7 7;3 3 5 5 7 7;4 4 9 9 2 2;4 4 9 9 2 2;4 4 9 9 2 2])
-%!assert (repelem([1 2 3 4 5],2,[2 1 3 0 2],3) repmat([1 1 2 3 3 3 5 5],2,1,3))
-%!assert (repelem([-1 0;0 1],2,1,1,2), repmat([-1 -1 0 0; 0 0 1 1],1,1,2))
+%!assert (repelem([1 2 3 4 5],2,[2 1 3 0 2],3),repmat([1 1 2 3 3 3 5 5],2,1,3))
+%!assert (repelem([-1 0;0 1],1,2,1,2), repmat([-1 -1 0 0; 0 0 1 1],1,1,1,2))
 %!assert (repelem(cat(3,[-1 0 ; 0 1],[-1 0 ; 0 1]),2,3), repmat([-1 -1 -1 0 0 0;-1 -1 -1 0 0 0;0 0 0 1 1 1;0 0 0 1 1 1],1,1,2))
 %!assert (repelem('Octave', 2,3), ['OOOccctttaaavvveee';'OOOccctttaaavvveee'])
 %
