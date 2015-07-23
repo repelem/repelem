@@ -142,7 +142,7 @@
 ## @end deftypefn
 
 
-function ret = repelem(element, varargin)
+function retval = repelem(element, varargin)
 
   if (nargin <= 1)
     error("repelem: Not enough input arguments")
@@ -155,10 +155,10 @@ function ret = repelem(element, varargin)
             
       if (iscolumn(element))
         # element values repeated v times in a col vector
-        ret = element(:, ones(v, 1))'(:); 
+        retval = element(:, ones(v, 1))'(:); 
       elseif (isrow(element))
         # element values repeated v times in a row vector
-        ret = element(ones(v, 1), :)(:)'; 
+        retval = element(ones(v, 1), :)(:)'; 
       else
         error("repelem: %gD Array objects require %g or more input arguments, only %g given", ndims(element), ndims(element) + 1, nargin);
       endif
@@ -168,7 +168,7 @@ function ret = repelem(element, varargin)
       # returned idx2 has a row vect. of element indices in right position
       idx2 = prepareIdx(v);
       # fills with element values, direction matches element. 
-      ret  = element(idx2);
+      retval  = element(idx2);
         
     else
       error("repelem: varargin{1} must be a scalar or the same length as element")
@@ -178,16 +178,17 @@ function ret = repelem(element, varargin)
   
   elseif (nargin == 3)  #can simplify for known dimension count
     
-    #avoid repeated function calls
+    # avoid repeated function calls
     elsize = size(element);
-    scalarv = cellfun('numel', varargin)==1;  #'numel' or 'length' faster than isvector in cellfun
+    # 'numel' or 'length' faster than isvector in cellfun
+    scalarv = (cellfun('numel', varargin) == 1);
     nonscalarv = ~scalarv;
     
     ##INPUT CHECK
 
     #1:check that all varargin are either scalars or vectors, no arrays. isvector gives true for scalars.
     # (Faster here with only two to avoid cellfun)
-    if (~(isvector(varargin{2})&&isvector(varargin{2}))) 
+    if (~(isvector(varargin{2}) && isvector(varargin{2}))) 
       error("repelem: varargin must be all scalars or vectors");
 
     #2: check that the ones that are vectors have the right length.
@@ -197,11 +198,11 @@ function ret = repelem(element, varargin)
     
     #Create index arrays to pass to element 
     ##(no slower passing to prepareIdx than checking and doing scalars directly)
-    idx1 = prepareIdx(varargin{1},elsize(1));
-    idx2 = prepareIdx(varargin{2},elsize(2));
+    idx1 = prepareIdx(varargin{1}, elsize(1));
+    idx2 = prepareIdx(varargin{2}, elsize(2));
   
     #the : at the end takes care of size(element)>2
-    ret = element(idx1, idx2, :); 
+    retval = element(idx1, idx2, :); 
 
   else  #if (nargin > 3) **no need for elseif
   
@@ -246,7 +247,7 @@ function ret = repelem(element, varargin)
     
     # use completed idx to specify repitition of element values in all dimensions
     # trailing : will take care of any case where eldims > vasize.
-    ret = element(idx{:},:);
+    retval = element(idx{:}, :);
   
   endif
 
@@ -263,11 +264,16 @@ function idx = prepareIdx(v, elsize_n)
   else
   
     # works for row or column vector. idx2 output will be a row vector.
-    idx_temp = cumsum(v); # gets ending position for each element item
-    idx(1:idx_temp(end)) = 0; # row vector with enough space for output
-    idx(idx_temp(1:end - 1) + 1) = 1; # sets starting position of each element to 1
-    idx(1) = 1; # sets starting position of each element to 1
-    idx = (find(v~=0))(cumsum(idx)); #with prepared index
+    # gets ending position for each element item
+    idx_temp = cumsum(v);
+    # row vector with enough space for output
+    idx(1:idx_temp(end)) = 0;
+    # sets starting position of each element to 1
+    idx(idx_temp(1:end - 1) + 1) = 1;
+    # sets starting position of each element to 1
+    idx(1) = 1;
+    # with prepared index
+    idx = (find(v ~= 0))(cumsum(idx)); 
     
   endif
   
