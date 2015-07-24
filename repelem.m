@@ -231,7 +231,7 @@ function retval = repelem(element, varargin)
       error("repelem: varargin(n) for trailing singleton dimensions must be scalar");        
     
     # 3: that the ones that are vectors have the right length.
-    elseif (any(~(cellfun('length', varargin(nonscalarv)) == elsize(nonscalarv)))) 
+    elseif (any(~(cellfun('numel', varargin(nonscalarv)) == elsize(nonscalarv)))) 
       error("repelem: varargin(n) must either be scalar or have the same number of elements as the size of dimension n of the array to be replicated");        
       
     endif 
