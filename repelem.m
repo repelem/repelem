@@ -165,7 +165,7 @@ function retval = repelem(element, varargin)
       
     elseif (isvector(element) && (length(v) == length(element)))
       # vector element with vector varargin. basic run-length decoding in function prepareIdx
-      # returned idx2 has a row vect. of element indices in right position
+      # returned idx2 as a row vect. of element indices in right position
       idx2 = prepareIdx(v);
       # fills with element values, direction matches element. 
       retval  = element(idx2);
@@ -188,7 +188,7 @@ function retval = repelem(element, varargin)
 
     #1:check that all varargin are either scalars or vectors, no arrays. isvector gives true for scalars.
     # (Faster here with only two to avoid cellfun)
-    if (~(isvector(varargin{2}) && isvector(varargin{2}))) 
+    if (~(isvector(varargin{1}) && isvector(varargin{2}))) 
       error("repelem: varargin must be all scalars or vectors");
 
     #2: check that the ones that are vectors have the right length.
