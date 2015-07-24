@@ -162,16 +162,22 @@ function retval = repelem(element, varargin)
       else
         error("repelem: %gD Array objects require %g or more input arguments, only %g given", ndims(element), ndims(element) + 1, nargin);
       endif
+    
+    elseif isvector(element) && isvector(v)
+       
+      if (numel(v) == numel(element))
+        # vector element with vector varargin. basic run-length decoding in function prepareIdx
+        # returned idx2 as a row vect. of element indices in right position
+        idx2 = prepareIdx(v);
+        # fills with element values, direction matches element. 
+        retval  = element(idx2);
+
+      else # catch unequal element counts
+        error("repelem: varargin must either be scalar or have the same number of elements as the vector to be replicated");
+      endif
       
-    elseif (isvector(element) && (length(v) == length(element)))
-      # vector element with vector varargin. basic run-length decoding in function prepareIdx
-      # returned idx2 as a row vect. of element indices in right position
-      idx2 = prepareIdx(v);
-      # fills with element values, direction matches element. 
-      retval  = element(idx2);
-        
-    else
-      error("repelem: varargin{1} must be a scalar or the same length as element")
+    else # catch any arrays passed to element or varargin with nargin==2
+      error("repelem: when called with only two inputs they must be either scalars or vectors.");
       
     endif
   
@@ -192,7 +198,7 @@ function retval = repelem(element, varargin)
       error("repelem: varargin must be all scalars or vectors");
 
     #2: check that the ones that are vectors have the right length.
-    elseif (any(~(cellfun('length', varargin(nonscalarv)) == elsize(nonscalarv))))
+    elseif (any(~(cellfun('numel', varargin(nonscalarv)) == elsize(nonscalarv))))
       error("repelem: varargin(n) must either be scalar or have the same number of elements as the size of dimension n of the array to be replicated");        
     endif 
     
@@ -208,7 +214,7 @@ function retval = repelem(element, varargin)
   
     # avoid repeated function calls
     elsize = size(element);
-    eldims = length(elsize);
+    eldims = numel(elsize);
     vasize = nargin - 1; #numel(varargin);
     %maxDim = max(eldims,vasize);
     dimsWithBoth = min(eldims,vasize);
@@ -330,6 +336,7 @@ endfunction
 %!error  (repelem([1 2 3; 3 2 1],[1 2 3]'))
 %!error  (repelem([1 2 3; 3 2 1],[1 2 2 1]))
 %!error  (repelem([1 2 3; 3 2 1],[1 2 3;4 5 6]))
+%!error  (repelem([1 2 3 4 5],[1 2 3 4 5;1 2 3 4 5]))
 %
 %%%nargin == 3 error tests
 %!error  (repelem([1 2 3; 3 2 1], 1, [1 2;1 2]))
