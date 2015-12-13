@@ -22,8 +22,8 @@
 ## see <http://www.gnu.org/licenses/>.
 
 ## -*- texinfo -*-
-## @deftypefn {Function File} {} repelem (@var{X}, @var{R})
-## @deftypefnx {Function File} {} repelem (@var{X}, @var{R1}, @dots{}, @var{Rn})
+## @deftypefn {} {} repelem (@var{X}, @var{R})
+## @deftypefnx {} {} repelem (@var{X}, @var{R1}, @dots{}, @var{Rn})
 ## Construct an array of repeated elements from X.
 ##
 ## @var{X} must be a scalar, a vector or a n-dimensional array. 
